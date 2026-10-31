@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cricut SVG Generator</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="toolbar">
+        <div class="toolbar-left">
+            <div class="logo">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <rect width="28" height="28" rx="6" fill="#00C853"/>
+                    <path d="M8 14 L12 18 L20 10" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="logo-text">CricutGen</span>
+            </div>
+        </div>
+        <div class="toolbar-center">
+            <div class="prompt-bar">
+                <input type="text" id="promptInput" placeholder="Describe your design... (e.g., a butterfly, happy birthday)" autocomplete="off">
+                <button id="generateBtn" class="btn-generate" onclick="generateDesign()">
+                    <span class="btn-icon">&#9733;</span> Generate
+                </button>
+            </div>
+        </div>
+        <div class="toolbar-right">
+            <div class="toolbar-control">
+                <label for="layerCount">Layers</label>
+                <select id="layerCount">
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4" selected>4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                </select>
+            </div>
+            <div class="toolbar-control">
+                <label for="canvasSize">Canvas</label>
+                <select id="canvasSize">
+                    <option value="12">12 × 12 in</option>
+                    <option value="11">11 × 8.5 in</option>
+                    <option value="6">6 × 6 in</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <main class="workspace">
+        <aside class="panel panel-left">
+            <div class="panel-section">
+                <h3>Palette</h3>
+                <div class="palette-mode">
+                    <label class="radio-label">
+                        <input type="radio" name="paletteMode" value="auto" checked onchange="togglePaletteMode()"> Auto-detect
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="paletteMode" value="manual" onchange="togglePaletteMode()"> Choose colors
+                    </label>
+                </div>
+                <div id="palettePresets" class="palette-presets">
+                    <select id="presetSelect" onchange="applyPreset()">
+                        <option value="">-- Select preset --</option>
+                    </select>
+                </div>
+                <div id="colorPickers" class="color-pickers" style="display:none;"></div>
+            </div>
+
+            <div class="panel-section">
+                <h3>Options</h3>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="includeBackground"> Include background layer
+                </label>
+            </div>
+
+            <div class="panel-section collapsible">
+                <h3 class="collapsible-header" onclick="toggleAdvanced()">
+                    Advanced <span id="advancedArrow" class="arrow">&#9654;</span>
+                </h3>
+                <div id="advancedSettings" class="collapsible-body" style="display:none;">
+                    <div class="setting-row">
+                        <label>Speckle filter</label>
+                        <input type="range" id="filterSpeckle" min="1" max="20" value="4">
+                        <span id="filterSpeckleVal">4</span>
+                    </div>
+                    <div class="setting-row">
+                        <label>Corner threshold</label>
+                        <input type="range" id="cornerThreshold" min="10" max="180" value="60">
+                        <span id="cornerThresholdVal">60</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section" id="historySection" style="display:none;">
+                <h3>History</h3>
+                <div id="historyList" class="history-list"></div>
+            </div>
+        </aside>
+
+        <section class="canvas-area">
+            <div class="canvas-container" id="canvasContainer">
+                <div class="mat-grid" id="matGrid">
+                    <div class="mat-border">
+                        <div id="svgPreview" class="svg-preview">
+                            <div class="empty-state" id="emptyState">
+                                <div class="empty-icon">&#9734;</div>
+                                <p>Describe your design above and click <strong>Generate</strong></p>
+                                <p class="empty-hint">Your Cricut-ready SVG will appear here</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="progress-overlay" id="progressOverlay" style="display:none;">
+                    <div class="progress-card">
+                        <div class="progress-spinner"></div>
+                        <div class="progress-stage" id="progressStage">Starting...</div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-percent" id="progressPercent">0%</div>
+                    </div>
+                </div>
+            </div>
+            <div class="canvas-controls">
+                <button class="canvas-btn" onclick="zoomIn()" title="Zoom in">+</button>
+                <button class="canvas-btn" onclick="zoomOut()" title="Zoom out">&minus;</button>
+                <button class="canvas-btn" onclick="zoomReset()" title="Fit to view">&#8634;</button>
+            </div>
+        </section>
+
+        <aside class="panel panel-right">
+            <div class="panel-section">
+                <h3>Layers</h3>
+                <div id="layersList" class="layers-list">
+                    <div class="empty-layers">No layers yet</div>
+                </div>
+            </div>
+
+            <div class="panel-section" id="downloadSection" style="display:none;">
+                <h3>Download</h3>
+                <button class="btn-download" onclick="downloadAll()">
+                    &#11015; Download SVG
+                </button>
+                <div id="layerDownloads" class="layer-downloads"></div>
+            </div>
+        </aside>
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
