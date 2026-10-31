@@ -4,7 +4,25 @@ let zoomLevel = 1;
 let presets = [];
 let history = [];
 
+function showToast(message, type = "error") {
+    let container = document.getElementById("toastContainer");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "toastContainer";
+        container.style.cssText = "position:fixed;top:16px;right:16px;z-index:10000;display:flex;flex-direction:column;gap:8px;";
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement("div");
+    const bg = type === "error" ? "#d32f2f" : type === "success" ? "#2e7d32" : "#1565c0";
+    toast.style.cssText = `background:${bg};color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;max-width:380px;box-shadow:0 4px 12px rgba(0,0,0,.4);animation:fadeIn .2s;`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = "0"; toast.style.transition = "opacity .3s"; setTimeout(() => toast.remove(), 300); }, 5000);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+    currentJobId = null;
     loadPalettes();
     updateColorPickers();
     setupSliders();
@@ -127,7 +145,7 @@ async function generateDesign() {
 
         if (!resp.ok) {
             const err = await resp.json();
-            alert(err.detail || "Generation failed");
+            showToast(err.detail || "Generation failed");
             hideProgress();
             btn.disabled = false;
             return;
@@ -137,7 +155,7 @@ async function generateDesign() {
         currentJobId = data.job_id;
         startPolling();
     } catch (e) {
-        alert("Network error: " + e.message);
+        showToast("Network error: " + e.message);
         hideProgress();
         btn.disabled = false;
     }
@@ -153,6 +171,18 @@ async function pollStatus() {
 
     try {
         const resp = await fetch(`/api/status/${currentJobId}`);
+        if (!resp.ok) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+            hideProgress();
+            document.getElementById("generateBtn").disabled = false;
+            if (resp.status === 404) {
+                showToast("Job lost (server may have restarted). Please try again.");
+            } else {
+                showToast("Status check failed: HTTP " + resp.status);
+            }
+            return;
+        }
         const status = await resp.json();
 
         updateProgress(status.stage, status.progress);
@@ -168,7 +198,7 @@ async function pollStatus() {
             pollInterval = null;
             hideProgress();
             document.getElementById("generateBtn").disabled = false;
-            alert("Error: " + (status.error || "Unknown error"));
+            showToast("Error: " + (status.error || "Unknown error"));
         }
     } catch (e) {
         console.error("Poll error:", e);
@@ -216,7 +246,7 @@ async function loadPreview(jobId, status) {
         addToHistory(jobId, status);
     } catch (e) {
         console.error("Preview load error:", e);
-        alert("The design was generated, but its preview could not be loaded: " + e.message);
+        showToast("Design generated but preview failed to load: " + e.message);
     }
 }
 

@@ -36,9 +36,6 @@ PRESET_PALETTES = [
 
 @app.post("/api/generate")
 async def generate(request: GenerateRequest):
-    if not settings.openai_api_key:
-        raise HTTPException(status_code=400, detail="OpenAI API key not configured. Add OPENAI_API_KEY to your .env file.")
-
     job_id = uuid4().hex[:12]
     jobs[job_id] = JobStatus(job_id=job_id, status="processing", stage="starting", progress=0.0)
     asyncio.create_task(run_pipeline(request, job_id))

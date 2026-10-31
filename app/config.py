@@ -3,8 +3,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    ai_backend: str = "openai"
-    openai_api_key: str = ""
+    ai_backend: str = "pollinations"
     output_dir: Path = Path("./app/output")
     default_image_size: int = 1024
     max_layers: int = 8

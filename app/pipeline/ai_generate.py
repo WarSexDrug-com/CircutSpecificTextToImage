@@ -1,7 +1,8 @@
-import base64
+import asyncio
 import io
+from urllib.parse import quote
 
-from openai import AsyncOpenAI
+import httpx
 from PIL import Image
 
 from ..config import settings
@@ -18,18 +19,26 @@ def build_prompt(user_prompt: str, num_layers: int) -> str:
 
 
 async def generate_image(prompt: str, num_layers: int) -> Image.Image:
-    client = AsyncOpenAI(api_key=settings.openai_api_key)
-    try:
-        response = await client.images.generate(
-            model="gpt-image-2",
-            prompt=build_prompt(prompt, num_layers),
-            size="1024x1024",
-            quality="high",
-            output_format="png",
-            n=1,
-        )
-        image_data = base64.b64decode(response.data[0].b64_json)
-        return Image.open(io.BytesIO(image_data)).convert("RGB")
-    finally:
-        await client.close()
+    full_prompt = build_prompt(prompt, num_layers)
+    encoded_prompt = quote(full_prompt)
+    size = settings.default_image_size
+    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={size}&height={size}&nologo=true"
 
+    last_error = None
+    for attempt in range(4):
+        try:
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                response = await client.get(url, follow_redirects=True)
+                if response.status_code == 200:
+                    image = Image.open(io.BytesIO(response.content)).convert("RGB")
+                    return image
+                last_error = f"HTTP {response.status_code}"
+        except httpx.TimeoutException:
+            last_error = "Request timed out"
+        except httpx.ConnectError:
+            last_error = "Connection failed"
+
+        if attempt < 3:
+            await asyncio.sleep(3 * (attempt + 1))
+
+    raise RuntimeError(f"Image generation failed after 4 attempts: {last_error}")
